@@ -51,12 +51,27 @@ export function usePageFlipBook(plates: Plate[]) {
       return e;
     }
 
+    // Corrects --ar on the book to the real artwork's proportions once it
+    // loads, instead of trusting a hardcoded guess. Keeps the box's shape
+    // matched to the image so object-fit: contain never has to letterbox
+    // or crop, and the illustration's own rounded/deckled edges stay intact.
+    function syncAspect(img: HTMLImageElement) {
+      const apply = () => {
+        if (img.naturalWidth && img.naturalHeight) {
+          book.style.setProperty("--ar", String(img.naturalWidth / img.naturalHeight));
+        }
+      };
+      if (img.complete) apply();
+      else img.addEventListener("load", apply, { once: true });
+    }
+
     function imgEl(i: number, side: "left" | "right") {
       const im = new Image();
       im.className = "sb-half-img " + side;
       im.draggable = false;
       im.alt = "";
       im.src = plates[i].image;
+      syncAspect(im);
       return im;
     }
 
@@ -130,6 +145,7 @@ export function usePageFlipBook(plates: Plate[]) {
         im.src = plates[idx].image;
         im.alt = plates[idx].title;
         im.draggable = false;
+        syncAspect(im);
         f.appendChild(im);
         book.appendChild(f);
         sb3d.style.setProperty("--shade", "0");
